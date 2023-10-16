@@ -1,13 +1,5 @@
 /* CSS for KinescopeXBlock */
 
-.kinescope_block .count {
-    font-weight: bold;
-}
-
-.kinescope_block p {
-    cursor: pointer;
-}
-
 iframe {
 	position: absolute;
     width: 100%;

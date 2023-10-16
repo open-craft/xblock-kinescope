@@ -6,19 +6,19 @@ XBlock for embedding Kinescope Videos.
 
 1. Clone this repository into `devstack_root/src/` directory.
 1. Add the following to `devstack_root/devstack/options.local.mk`:
-    ```bash
-    # Restart both containers
-    edx-restart: lms-restart studio-restart
-    
-    # This allows you to install an XBlock in both lms and studio using
-    # make install-xblock XBLOCK=problem-builder
-    install-xblock:
-        for c in lms studio ; do \
-            docker exec -it edx.${COMPOSE_PROJECT_NAME}.$$c bash -c \
-            'cd /edx/src/$(XBLOCK) && /edx/app/edxapp/venvs/edxapp/bin/pip install -e .' ;   \
-        done
-        make edx-restart
-    ```
+	```bash
+	# Restart both containers
+	edx-restart: lms-restart cms-restart
+
+	# This allows you to install an XBlock in both lms and studio using
+	# make install-xblock XBLOCK=problem-builder
+	install-xblock:
+		for c in lms cms ; do \
+			docker exec -it edx.${COMPOSE_PROJECT_NAME}.$$c bash -c \
+			'cd /edx/src/$(XBLOCK) && /edx/app/edxapp/venvs/edxapp/bin/pip install -e .' ;   \
+		done
+		make edx-restart
+	```
 1. Run `make install-xblock XBLOCK=xblock-kinescope`.
 
 ## Usage
