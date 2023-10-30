@@ -24,7 +24,7 @@ def package_data(pkg, roots):
 
 setup(
     name='kinescope-xblock',
-    version='1.0.0',
+    version='0.1.0',
     description='XBlock that embeds content from Kinescope (https://kinescope.io)',
     license='AGPL v3',
     packages=[
