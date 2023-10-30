@@ -1,6 +1,6 @@
 """This XBlock embeds content from Kinescope through Iframes"""
 
-import pkg_resources
+from django.core.exceptions import ValidationError
 from web_fragments.fragment import Fragment
 from xblock.core import XBlock
 from xblock.fields import Integer, Scope, String
@@ -8,10 +8,17 @@ try:
     from xblock.utils.studio_editable import StudioEditableXBlockMixin
 except ModuleNotFoundError: # For compatibility with Palm and earlier
     from xblockutils.studio_editable import StudioEditableXBlockMixin
+try:
+    from xblock.utils.resources import ResourceLoader
+except ModuleNotFoundError: # For compatibility with Palm and earlier
+    from xblockutils.resources import ResourceLoader
+
 from xblock.validation import ValidationMessage
 
+from .utils import _, validate_parse_kinescope_url
 
-from .utils import _, is_url, parse_valid_kinescope_url
+
+loader = ResourceLoader(__name__)
 
 
 class KinescopeXBlock(StudioEditableXBlockMixin, XBlock):
@@ -19,65 +26,48 @@ class KinescopeXBlock(StudioEditableXBlockMixin, XBlock):
     This XBlock renders Iframe for Kinescope videos.
     """
 
-    display_name = String(
-        display_name=_("Display name"),
-        default=_("Kinescope"),
-        scope=Scope.settings,
-        help=_("Display name for this XBlock."),
-    )
-
     video_link = String(
         display_name="Video Link/URL",
         default="",
         scope=Scope.content,
-        help=_(
-            "Video link copied from Kinescope dashboard. The video id below is extracted "
-            "from this link if provided"
-        )
+        help=_("Video link copied from Kinescope dashboard.")
     )
 
     video_id = String(
         display_name=_("Video ID"),
         default="",
         scope=Scope.content,
-        help=_(
-            "UUID of the video to embed."
-        ),
+        help=_("ID of the video to embed."),
         resettable_editor=False
     )
 
-    editable_fields = ('display_name', 'video_link', 'video_id')
+    editable_fields = ('display_name', 'video_link')
 
 
     def clean_studio_edits(self, data):
         """
-        Parse video_link if provyided and populate video_id
+        Parse video_link if provided and populate video_id
         """
-        if "video_link" in data and (video_id := parse_valid_kinescope_url(data["video_link"])):
-            data["video_id"] = video_id
+        if "video_link" in data:
+            try:
+                video_id = validate_parse_kinescope_url(data["video_link"])
+                data["video_id"] = video_id
+            except ValidationError:
+                data["video_id"] = ""
 
 
     def validate_field_data(self, validation, data):
         """
         Validate video link and video id
         """
-        if not data.video_link and not data.video_id:
-            validation.add(ValidationMessage(
-                ValidationMessage.ERROR,
-                u"Atleast one of Video Link or Video Id is mandatory"
-            ))
-        if data.video_link:
-            if not parse_valid_kinescope_url(data.video_link):
-                validation.add(ValidationMessage(ValidationMessage.ERROR, u"Invalid video link"))
-        else :
-            if is_url(data.video_id):
-                validation.add(ValidationMessage(ValidationMessage.ERROR, u"Video ID cannot be an URL"))
-
-
-    def resource_string(self, path):
-        """Handy helper for getting resources from our kit."""
-        data = pkg_resources.resource_string(__name__, path)
-        return data.decode("utf8")
+        if not data.video_link:
+            validation.add(ValidationMessage(ValidationMessage.ERROR, _("Video Link is mandatory")))
+        else:
+            try:
+                validate_parse_kinescope_url(data.video_link)
+            except ValidationError as e:
+                for msg in e.messages:
+                    validation.add(ValidationMessage(ValidationMessage.ERROR, msg))
 
 
     def student_view(self, context=None):
@@ -85,11 +75,10 @@ class KinescopeXBlock(StudioEditableXBlockMixin, XBlock):
         The primary view of the KinescopeXBlock, shown to students
         when viewing courses.
         """
-        html = self.resource_string("static/html/kinescope.html")
-        frag = Fragment(html.format(self=self))
-        frag.add_css(self.resource_string("static/css/kinescope.css"))
-        frag.add_javascript(self.resource_string("static/js/src/kinescope.js"))
-        frag.initialize_js('KinescopeXBlock')
+        frag = Fragment(loader.render_django_template("static/html/kinescope.html", context=context))
+        frag.add_css_url(self.runtime.local_resource_url(self, "public/css/kinescope.css"))
+        frag.add_javascript_url(self.runtime.local_resource_url(self, "public/js/kinescope.js"))
+        frag.initialize_js('KinescopeXBlock', {'video_id': self.video_id})
         return frag
 
 
