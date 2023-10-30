@@ -33,27 +33,7 @@ class KinescopeXBlock(StudioEditableXBlockMixin, XBlock):
         help=_("Video link copied from Kinescope dashboard.")
     )
 
-    video_id = String(
-        display_name=_("Video ID"),
-        default="",
-        scope=Scope.content,
-        help=_("ID of the video to embed."),
-        resettable_editor=False
-    )
-
     editable_fields = ('display_name', 'video_link')
-
-
-    def clean_studio_edits(self, data):
-        """
-        Parse video_link if provided and populate video_id
-        """
-        if "video_link" in data:
-            try:
-                video_id = validate_parse_kinescope_url(data["video_link"])
-                data["video_id"] = video_id
-            except ValidationError:
-                data["video_id"] = ""
 
 
     def validate_field_data(self, validation, data):
@@ -75,10 +55,14 @@ class KinescopeXBlock(StudioEditableXBlockMixin, XBlock):
         The primary view of the KinescopeXBlock, shown to students
         when viewing courses.
         """
+        try:
+            video_id = validate_parse_kinescope_url(self.video_link)
+        except ValidationError:
+            video_id = ""
         frag = Fragment(loader.render_django_template("static/html/kinescope.html", context=context))
         frag.add_css_url(self.runtime.local_resource_url(self, "public/css/kinescope.css"))
         frag.add_javascript_url(self.runtime.local_resource_url(self, "public/js/kinescope.js"))
-        frag.initialize_js('KinescopeXBlock', {'video_id': self.video_id})
+        frag.initialize_js('KinescopeXBlock', {'video_id': video_id})
         return frag
 
 
