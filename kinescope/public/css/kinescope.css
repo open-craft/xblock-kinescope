@@ -1,0 +1,15 @@
+/* CSS for KinescopeXBlock */
+
+iframe {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+}
+
+.video_wrapper {
+    position: relative;
+    padding-top: 56.25%;
+    width: 100%
+}
